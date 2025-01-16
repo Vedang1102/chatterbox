@@ -45,10 +45,58 @@ export const signup = async (req,res) => {
     }
 }
 
-export const login = (req,res) => {
-    res.send("Login Page");
+export const login = async (req,res) => {
+    const {email,password} = req.body;
+    try {
+        const user = await User.findOne({email});
+        if(!user) {
+            return res.status(400).json({message: "Invalid credentials"});
+        }
+
+        const isCorrectPass = await bcrypt.compare(password, user.password);
+        if(!isCorrectPass) {
+            return res.status(400).json({message: "Invalid credentials"});
+        }
+        generateToken(user._id, res);
+        res.status(200).json({
+            _id: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            profilePicture: user.profilePicture
+        });
+    } catch (error) {
+        console.log("Error in login controller", error.message);
+        res.status(500).json({message: "Internal Server Error"});
+    }
 }
 
 export const logout = (req,res) => {
-    res.send("Logout Page");
+    try {
+        res.cookie("jwt", "", {maxAge: 0});
+        res.status(200).json({message: "Logged out successfully"});
+    } catch (error) {
+        console.log("Error in logout controller", error.message);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const updateProfile = async (req,res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if(user) {
+            user.profilePicture = req.body.profilePicture || user.profilePicture;
+            await user.save();
+            res.status(200).json({
+                _id: user._id,
+                email: user.email,
+                fullName: user.fullName,
+                profilePicture: user.profilePicture
+            });
+        } else {
+            res.status(404).json({message: "User not found"});
+        }
+    } catch (error) {
+        console.log("Error in updateProfile controller", error.message);
+        res.status(500).json({message: "Internal Server Error"});
+    }
 }
