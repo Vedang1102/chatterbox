@@ -11,6 +11,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true
 });
 
-const user = mongoose.model("User", userSchema); //keep U uppercase as mongoose will make it 'users'
+const User = mongoose.model("User", userSchema); //keep U uppercase as mongoose will make it 'users'
 
-export default user;
+export default User;
