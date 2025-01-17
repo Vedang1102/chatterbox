@@ -1,3 +1,4 @@
+import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
@@ -82,21 +83,27 @@ export const logout = (req,res) => {
 
 export const updateProfile = async (req,res) => {
     try {
-        const user = await User.findById(req.user._id);
-        if(user) {
-            user.profilePicture = req.body.profilePicture || user.profilePicture;
-            await user.save();
-            res.status(200).json({
-                _id: user._id,
-                email: user.email,
-                fullName: user.fullName,
-                profilePicture: user.profilePicture
-            });
-        } else {
-            res.status(404).json({message: "User not found"});
+        const {profilePic} = req.body;
+        const userId = req.user._id; //we can use req user directly here as we have already defined the user in protectRoute and we are calling this function after that function
+
+        if(!profilePic){
+            return res.status(400).json({message: "Profile picture is required"});
         }
+        const uploadResponse = await cloudinary.uploader.upload(profilePic);
+        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic: uploadResponse.secure_url}, {new: true}); //new:true returns the updated document
+
+        res.status(200).json(updatedUser);
     } catch (error) {
         console.log("Error in updateProfile controller", error.message);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+}
+
+export const checkAuth = (req,res) => {
+    try {
+        res.status(200).json(req.user);
+    } catch (error) {
+        console.log("Error in checkAuth controller", error.message);
         res.status(500).json({message: "Internal Server Error"});
     }
 }
